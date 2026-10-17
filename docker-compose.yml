@@ -1,0 +1,23 @@
+# Plate - works with `docker compose up -d --build` and as a Portainer stack.
+services:
+  plate:
+    build: .
+    image: plate:latest
+    container_name: plate
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Optional. You can also paste a key in the app: Settings > AI connection.
+      # A key saved in the app is used instead of one set here.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      # How many AI estimates each person may request per day.
+      - AI_DAILY_LIMIT=${AI_DAILY_LIMIT:-60}
+    volumes:
+      # The database and meal photos. Back this up.
+      - plate-data:/data
+
+volumes:
+  plate-data:

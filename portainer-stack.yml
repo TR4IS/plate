@@ -1,0 +1,21 @@
+# Paste this into Portainer: Stacks > Add stack > Web editor.
+# It expects the image "plate:latest" to exist already (README, "Install with Portainer", step 2).
+services:
+  plate:
+    image: plate:latest
+    container_name: plate
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Optional. You can also paste a key in the app: Settings > AI connection.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - AI_DAILY_LIMIT=${AI_DAILY_LIMIT:-60}
+    volumes:
+      # The database and meal photos. Back this up.
+      - plate-data:/data
+
+volumes:
+  plate-data:
