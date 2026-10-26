@@ -1,0 +1,6 @@
+# Used by `gdeploy` on the home server (see deploy.conf). The only server-specific setting:
+# the site is reached on port 8907 there instead of 3000.
+services:
+  plate:
+    ports: !override
+      - "8907:3000"
