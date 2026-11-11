@@ -344,13 +344,16 @@ async function postJson(url, headers, body, label) {
     throw new HttpError(502, `That ${label} model is not available for this key. Pick another in Settings.`, { code: 'ai_model' });
   }
   if (res.status === 429) {
-    const quota = /quota|billing|credit/i.test(everything);
+    // "Rate limit reached ... try again in 5.7s" is a short wait, even when the text also offers a paid upgrade.
+    // Only an account that is really out of money or quota counts as billing.
+    const wait = Number(res.headers.get('retry-after')) || Number(/try again in ([\d.]+)s/i.exec(everything)?.[1]) || 0;
+    const quota = !wait && /insufficient_quota|exceeded your current quota|billing details|credit balance/i.test(everything);
     throw new HttpError(
       503,
       quota
         ? `The ${label} account has run out of quota or credit.`
         : `${label} is rate-limiting this key right now. Try again in a minute.`,
-      { code: quota ? 'ai_billing' : 'ai_busy' },
+      { code: quota ? 'ai_billing' : 'ai_busy', retryAfterMs: Math.ceil(wait * 1000) },
     );
   }
   if (res.status >= 500) {
@@ -481,7 +484,8 @@ export async function estimateMeal({ imageBase64, note, previous, correction }) 
     text = await attempt(config.provider, model);
   } catch (err) {
     const standby = STANDBY_ORDER.filter((p) => p !== config.provider && config.keys[p]);
-    if (err?.extra?.code !== 'ai_busy' || !standby.length) throw err;
+    // Busy, out of credit, or a broken key: the user would rather get an answer from another AI than an error.
+    if (!['ai_busy', 'ai_billing', 'ai_auth', 'ai_model', 'ai_timeout'].includes(err?.extra?.code) || !standby.length) throw err;
     let lastError = err;
     for (const provider of standby) {
       try {
@@ -506,7 +510,9 @@ const BACKUP_MODELS = {
 };
 // If the chosen provider is still busy after its backups, any other provider with a key takes over, fastest first.
 const STANDBY_ORDER = ['groq', 'gemini', 'openai', 'anthropic'];
+
 const RETRY_WAIT_MS = Number(process.env.AI_RETRY_WAIT_MS ?? 1500);
+const MAX_RETRY_WAIT_MS = RETRY_WAIT_MS > 0 ? 12_000 : 0;
 
 export async function withBackups(provider, model, run) {
   const tries = [model, model, ...(BACKUP_MODELS[provider] || []).filter((m) => m !== model)];
@@ -519,7 +525,11 @@ export async function withBackups(provider, model, run) {
       // A backup model this key can't use is skipped rather than shown.
       if (code !== 'ai_busy' && !(i > 1 && code === 'ai_model')) throw err;
       if (code === 'ai_busy') lastError = err;
-      if (i === 0 && RETRY_WAIT_MS > 0) await new Promise((r) => setTimeout(r, RETRY_WAIT_MS));
+      if (i === 0 && RETRY_WAIT_MS > 0) {
+        // Wait as long as the provider asked (up to 12 s) before trying the same model again.
+        const asked = Math.min(err?.extra?.retryAfterMs || 0, MAX_RETRY_WAIT_MS);
+        await new Promise((r) => setTimeout(r, Math.max(RETRY_WAIT_MS, asked)));
+      }
     }
   }
   throw lastError;
