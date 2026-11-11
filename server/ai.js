@@ -456,10 +456,37 @@ function resolve(config) {
 
 /** Estimate a meal from a JPEG (base64, optional), a note, and optionally a correction to an earlier estimate. */
 export async function estimateMeal({ imageBase64, note, previous, correction }) {
-  const { ask, apiKey, model } = resolve(aiConfig());
+  const config = aiConfig();
+  const { ask, apiKey, model } = resolve(config);
   const userText = buildUserText({ hasImage: Boolean(imageBase64), note, previous, correction });
-  const text = await ask({ apiKey, model, userText, imageBase64, structured: true });
+  const text = await withBackups(config.provider, model, (m) => ask({ apiKey, model: m, userText, imageBase64, structured: true }));
   return normalizeEstimate(parseModelJson(text));
+}
+
+// When a provider is overloaded ("high demand", 503) or briefly rate-limited, one short wait and a retry
+// usually works; if not, a lighter model from the same provider answers instead of the user seeing an error.
+const BACKUP_MODELS = {
+  gemini: ['gemini-flash-lite-latest', 'gemini-2.5-flash'],
+  openai: [],
+  anthropic: [],
+};
+const RETRY_WAIT_MS = Number(process.env.AI_RETRY_WAIT_MS ?? 1500);
+
+export async function withBackups(provider, model, run) {
+  const tries = [model, model, ...(BACKUP_MODELS[provider] || []).filter((m) => m !== model)];
+  let lastError;
+  for (let i = 0; i < tries.length; i++) {
+    try {
+      return await run(tries[i]);
+    } catch (err) {
+      const code = err?.extra?.code;
+      // A backup model this key can't use is skipped rather than shown.
+      if (code !== 'ai_busy' && !(i > 1 && code === 'ai_model')) throw err;
+      if (code === 'ai_busy') lastError = err;
+      if (i === 0 && RETRY_WAIT_MS > 0) await new Promise((r) => setTimeout(r, RETRY_WAIT_MS));
+    }
+  }
+  throw lastError;
 }
 
 /** One tiny request to prove the key and model work. Returns how long it took. */
