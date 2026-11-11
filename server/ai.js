@@ -359,6 +359,10 @@ async function postJson(url, headers, body, label) {
   if (res.status >= 500) {
     throw new HttpError(503, `${label} is having trouble right now. Try again in a moment.`, { code: 'ai_busy' });
   }
+  // Groq sometimes fails to write valid JSON on one try; the next try almost always works.
+  if (/json_validate_failed|failed to generate json|failed_generation/i.test(everything)) {
+    throw new HttpError(502, `${label} sent back a broken answer. Try again.`, { code: 'ai_flaky' });
+  }
   throw new HttpError(502, `${label} did not accept the request: ${detail}`, { code: 'ai_request' });
 }
 
@@ -485,7 +489,7 @@ export async function estimateMeal({ imageBase64, note, previous, correction }) 
   } catch (err) {
     const standby = STANDBY_ORDER.filter((p) => p !== config.provider && config.keys[p]);
     // Busy, out of credit, or a broken key: the user would rather get an answer from another AI than an error.
-    if (!['ai_busy', 'ai_billing', 'ai_auth', 'ai_model', 'ai_timeout'].includes(err?.extra?.code) || !standby.length) throw err;
+    if (!['ai_busy', 'ai_flaky', 'ai_billing', 'ai_auth', 'ai_model', 'ai_timeout'].includes(err?.extra?.code) || !standby.length) throw err;
     let lastError = err;
     for (const provider of standby) {
       try {
@@ -512,23 +516,31 @@ const BACKUP_MODELS = {
 const STANDBY_ORDER = ['groq', 'gemini', 'openai', 'anthropic'];
 
 const RETRY_WAIT_MS = Number(process.env.AI_RETRY_WAIT_MS ?? 1500);
-const MAX_RETRY_WAIT_MS = RETRY_WAIT_MS > 0 ? 12_000 : 0;
+const MAX_RETRY_WAIT_MS = RETRY_WAIT_MS > 0 ? 15_000 : 0;
+const MAX_TOTAL_WAIT_MS = 30_000;
 
 export async function withBackups(provider, model, run) {
-  const tries = [model, model, ...(BACKUP_MODELS[provider] || []).filter((m) => m !== model)];
+  const models = [model, ...(BACKUP_MODELS[provider] || []).filter((m) => m !== model)];
   let lastError;
-  for (let i = 0; i < tries.length; i++) {
-    try {
-      return await run(tries[i]);
-    } catch (err) {
-      const code = err?.extra?.code;
-      // A backup model this key can't use is skipped rather than shown.
-      if (code !== 'ai_busy' && !(i > 1 && code === 'ai_model')) throw err;
-      if (code === 'ai_busy') lastError = err;
-      if (i === 0 && RETRY_WAIT_MS > 0) {
-        // Wait as long as the provider asked (up to 12 s) before trying the same model again.
-        const asked = Math.min(err?.extra?.retryAfterMs || 0, MAX_RETRY_WAIT_MS);
-        await new Promise((r) => setTimeout(r, Math.max(RETRY_WAIT_MS, asked)));
+  let waited = 0;
+  for (let mi = 0; mi < models.length; mi++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await run(models[mi]);
+      } catch (err) {
+        const code = err?.extra?.code;
+        // A backup model this key can't use is skipped rather than shown.
+        if (mi > 0 && code === 'ai_model') break;
+        if (code !== 'ai_busy' && code !== 'ai_flaky') throw err;
+        lastError = err;
+        if (code === 'ai_flaky') continue; // a fresh try is enough
+        // Busy: wait as long as the provider asked (a few seconds on Groq's free tier), within a total budget.
+        const asked = err?.extra?.retryAfterMs || 0;
+        if (!asked && attempt > 0) break; // overloaded with no hint: move on to a backup
+        const pause = Math.min(Math.max(RETRY_WAIT_MS, asked + 250), MAX_RETRY_WAIT_MS);
+        if (waited + pause > MAX_TOTAL_WAIT_MS) break;
+        waited += pause;
+        if (pause > 0) await new Promise((r) => setTimeout(r, pause));
       }
     }
   }

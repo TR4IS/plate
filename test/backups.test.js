@@ -32,3 +32,24 @@ test('other errors are not retried', async () => {
 test('when everything is busy the user gets the busy message', async () => {
   await assert.rejects(withBackups('gemini', 'gemini-flash-latest', async () => { throw busy(); }), /busy/);
 });
+
+test('a broken JSON answer is retried on the same model', async () => {
+  let calls = 0;
+  const out = await withBackups('groq', 'qwen/qwen3.8-27b', async () => {
+    if (++calls < 3) throw new HttpError(502, 'broken', { code: 'ai_flaky' });
+    return 'ok';
+  });
+  assert.equal(out, 'ok');
+  assert.equal(calls, 3);
+});
+
+test('a per-minute limit is waited out on the same model', async () => {
+  const seen = [];
+  const out = await withBackups('groq', 'qwen/qwen3.8-27b', async (m) => {
+    seen.push(m);
+    if (seen.length < 3) throw new HttpError(503, 'slow down', { code: 'ai_busy', retryAfterMs: 10 });
+    return 'ok';
+  });
+  assert.equal(out, 'ok');
+  assert.equal(seen.length, 3);
+});
