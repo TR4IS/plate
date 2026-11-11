@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getSetting, setSetting } from './db.js';
 import { HttpError } from './http.js';
 
-export const PROVIDERS = ['anthropic', 'openai', 'gemini'];
+export const PROVIDERS = ['anthropic', 'openai', 'gemini', 'groq'];
 
 // `suggested` maps the models offered up front to the name shown in Settings.
 export const PROVIDER_INFO = {
@@ -35,11 +35,20 @@ export const PROVIDER_INFO = {
     keyEnv: ['GEMINI_API_KEY', 'GOOGLE_API_KEY'],
     modelEnv: 'GEMINI_MODEL',
   },
+  groq: {
+    label: 'Groq',
+    // Groq's photo-reading model that also supports strict JSON output.
+    defaultModel: 'qwen/qwen3.8-27b',
+    suggested: { 'qwen/qwen3.8-27b': 'Qwen 3.8 27B · very fast, has a free tier' },
+    keyEnv: ['GROQ_API_KEY'],
+    modelEnv: 'GROQ_MODEL',
+  },
 };
 
 const REQUEST_TIMEOUT_MS = 75_000;
 const OPENAI_BASE_URL = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
 
 // ---- configuration -----------------------------------------------------------------------
 
@@ -350,7 +359,11 @@ async function postJson(url, headers, body, label) {
   throw new HttpError(502, `${label} did not accept the request: ${detail}`, { code: 'ai_request' });
 }
 
-async function askOpenAI({ apiKey, model, userText, imageBase64, structured }) {
+const askOpenAI = (args) => askChatCompletions(args, OPENAI_BASE_URL, 'OpenAI');
+const askGroq = (args) => askChatCompletions(args, GROQ_BASE_URL, 'Groq');
+
+/** OpenAI's chat format, which Groq also speaks. */
+async function askChatCompletions({ apiKey, model, userText, imageBase64, structured }, baseUrl, label) {
   const content = [{ type: 'text', text: userText }];
   if (imageBase64) content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } });
 
@@ -362,11 +375,11 @@ async function askOpenAI({ apiKey, model, userText, imageBase64, structured }) {
   if (structured) {
     body.response_format = { type: 'json_schema', json_schema: { name: 'meal_estimate', strict: true, schema: MEAL_SCHEMA } };
   }
-  const data = await postJson(`${OPENAI_BASE_URL}/chat/completions`, { Authorization: `Bearer ${apiKey}` }, body, 'OpenAI');
+  const data = await postJson(`${baseUrl}/chat/completions`, { Authorization: `Bearer ${apiKey}` }, body, label);
 
   const choice = data.choices?.[0];
   if (choice?.message?.refusal) {
-    throw new HttpError(422, 'OpenAI declined to analyse that. Try a different photo or describe the meal in words.', {
+    throw new HttpError(422, `${label} declined to analyse that. Try a different photo or describe the meal in words.`, {
       code: 'ai_refusal',
     });
   }
@@ -442,7 +455,7 @@ async function askMock({ userText, structured }) {
   });
 }
 
-const ASK = { anthropic: askAnthropic, openai: askOpenAI, gemini: askGemini, mock: askMock };
+const ASK = { anthropic: askAnthropic, openai: askOpenAI, gemini: askGemini, groq: askGroq, mock: askMock };
 
 function resolve(config) {
   if (!config.ready) {
@@ -459,7 +472,27 @@ export async function estimateMeal({ imageBase64, note, previous, correction }) 
   const config = aiConfig();
   const { ask, apiKey, model } = resolve(config);
   const userText = buildUserText({ hasImage: Boolean(imageBase64), note, previous, correction });
-  const text = await withBackups(config.provider, model, (m) => ask({ apiKey, model: m, userText, imageBase64, structured: true }));
+  const attempt = (provider, firstModel) =>
+    withBackups(provider, firstModel, (m) =>
+      ASK[provider]({ apiKey: config.keys[provider] || '', model: m, userText, imageBase64, structured: true }),
+    );
+  let text;
+  try {
+    text = await attempt(config.provider, model);
+  } catch (err) {
+    const standby = STANDBY_ORDER.filter((p) => p !== config.provider && config.keys[p]);
+    if (err?.extra?.code !== 'ai_busy' || !standby.length) throw err;
+    let lastError = err;
+    for (const provider of standby) {
+      try {
+        text = await attempt(provider, config.models[provider]);
+        break;
+      } catch (next) {
+        lastError = next;
+      }
+    }
+    if (text === undefined) throw lastError;
+  }
   return normalizeEstimate(parseModelJson(text));
 }
 
@@ -469,7 +502,10 @@ const BACKUP_MODELS = {
   gemini: ['gemini-flash-lite-latest', 'gemini-2.5-flash'],
   openai: [],
   anthropic: [],
+  groq: [],
 };
+// If the chosen provider is still busy after its backups, any other provider with a key takes over, fastest first.
+const STANDBY_ORDER = ['groq', 'gemini', 'openai', 'anthropic'];
 const RETRY_WAIT_MS = Number(process.env.AI_RETRY_WAIT_MS ?? 1500);
 
 export async function withBackups(provider, model, run) {
@@ -529,6 +565,12 @@ export async function listModels(provider) {
     }
   } else if (!apiKey) {
     throw new HttpError(400, 'Add an API key first.');
+  } else if (provider === 'groq') {
+    const data = await getJson(`${GROQ_BASE_URL}/models`, { Authorization: `Bearer ${apiKey}` }, 'Groq');
+    for (const model of data.data || []) {
+      if (model.active === false || /whisper|tts|guard|orpheus|compound|prompt/i.test(model.id)) continue;
+      found.push({ id: model.id, label: model.id, created: (model.created || 0) * 1000 });
+    }
   } else if (provider === 'openai') {
     const data = await getJson(`${OPENAI_BASE_URL}/models`, { Authorization: `Bearer ${apiKey}` }, 'OpenAI');
     for (const model of data.data || []) {

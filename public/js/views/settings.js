@@ -577,6 +577,11 @@ const PROVIDER_HELP = {
     url: 'https://aistudio.google.com/apikey',
     text: 'Tap "Get API key". There is a free tier with a small daily allowance.',
   },
+  groq: {
+    site: 'console.groq.com',
+    url: 'https://console.groq.com/keys',
+    text: 'Create a key under API Keys. Free tier, and the fastest answers. With a key here, Plate also uses Groq whenever your main AI is busy.',
+  },
 };
 
 function AiSettingsScreen() {
