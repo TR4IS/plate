@@ -2,6 +2,24 @@
 
 A self-hosted calorie tracker and workout tracker made for Safari on iPhone.
 
+**[Try the live demo](https://n3trunner.dev/plate)** - it runs entirely in your browser on sample data, no account needed.
+
+| Today | Training | Meal | History |
+|---|---|---|---|
+| <img src="screenshots/today.png" width="200" alt="Today: calories left, macros, snap or type a meal, and the day's timeline"> | <img src="screenshots/training.png" width="200" alt="Logging a set with the rest timer running"> | <img src="screenshots/meal.png" width="200" alt="A logged meal with each item's calories and macros"> | <img src="screenshots/history.png" width="200" alt="Seven-day calorie chart and daily totals"> |
+
+<details>
+<summary>More: dark mode and the weekly plan</summary>
+
+| Dark mode | Workout plan |
+|---|---|
+| <img src="screenshots/today-dark.png" width="200" alt="Today screen in dark mode"> | <img src="screenshots/workout.png" width="200" alt="Weekly training plan with today's routine"> |
+
+</details>
+
+**Built with:** Node.js (no framework on the server), SQLite, Preact + htm with no build step, Docker.
+Three AI providers (Claude, OpenAI, Gemini) sit behind one interface and can be switched in Settings.
+
 - **Scan food** with a camera that opens inside the app. Add a note if you like, and an AI returns
   calories, protein, carbs and fat for each item on the plate. Tick items off, change the portion,
   or tell the AI what to fix before you save.

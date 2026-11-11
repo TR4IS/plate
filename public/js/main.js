@@ -30,11 +30,7 @@ function TabBar({ tab }) {
   return html`<nav class="tabbar" aria-label="Main">
     <${TabButton} id="today" icon="today" label="Today" active=${tab === 'today'} />
     <${TabButton} id="workout" icon="dumbbell" label="Workout" active=${tab === 'workout'} />
-    <button class="tab-camera" aria-label="Scan a meal" onClick=${() => openOverlay('capture')}>
-      <${Icon} name="camera" size="26" />
-    </button>
     <${TabButton} id="history" icon="history" label="History" active=${tab === 'history'} />
-    <${TabButton} id="settings" icon="settings" label="Settings" active=${tab === 'settings'} />
   </nav>`;
 }
 

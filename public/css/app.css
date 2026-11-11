@@ -6,18 +6,30 @@
 
 :root {
   color-scheme: light;
-  --bg: #f3f3f1;
+  --bg: #f2f0eb;
   --surface: #ffffff;
-  --surface-2: #eeeeeb;
-  --surface-3: #e3e3df;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --ink-3: #76756f;
+  --surface-2: #ebe8e1;
+  --surface-3: #ddd9cf;
+  --ink: #161513;
+  --ink-2: #4f4c45;
+  --ink-3: #76726a;
   --on-ink: #ffffff;
-  --line: rgba(11, 11, 11, 0.08);
+  --line: rgba(22, 21, 19, 0.08);
   --scrim: rgba(0, 0, 0, 0.42);
 
-  /* Data colours. Marks only - text always uses the ink tokens. */
+  /* The one accent: amber. Filled controls, progress, the active tab. */
+  --accent: #ef9f27;
+  --on-accent: #2b1a02;
+  --accent-soft: #faeeda;
+  --accent-ink: #854f0b;
+
+  /* The dark "scoreboard" card on Today and the floating bars. */
+  --hero: #1d1c1a;
+  --on-hero: #f6f4ef;
+  --hero-2: #b4b2a9;
+  --hero-track: rgba(255, 255, 255, 0.13);
+
+/* Data colours. Marks only - text always uses the ink tokens. */
   --protein: #2a78d6;
   --protein-soft: #dbe8f8;
   --carbs: #eb6834;
@@ -42,16 +54,24 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --bg: #000000;
-    --surface: #1c1c1e;
-    --surface-2: #2a2a2d;
-    --surface-3: #38383c;
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --ink-3: #8f8e88;
-    --on-ink: #0b0b0b;
-    --line: rgba(255, 255, 255, 0.1);
+    --bg: #0c0c0b;
+    --surface: #1a1918;
+    --surface-2: #262523;
+    --surface-3: #34322f;
+    --ink: #f6f4ef;
+    --ink-2: #c9c6bd;
+    --ink-3: #8f8b82;
+    --on-ink: #0c0c0b;
+    --line: rgba(255, 255, 255, 0.09);
     --scrim: rgba(0, 0, 0, 0.6);
+    --accent: #f2a93a;
+    --on-accent: #2b1a02;
+    --accent-soft: #3a2a12;
+    --accent-ink: #fac775;
+    --hero: #22211e;
+    --on-hero: #f6f4ef;
+    --hero-2: #a9a69d;
+    --hero-track: rgba(255, 255, 255, 0.1);
     --protein: #3987e5;
     --protein-soft: #1c2f4a;
     --carbs: #d95926;
@@ -69,16 +89,24 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #000000;
-  --surface: #1c1c1e;
-  --surface-2: #2a2a2d;
-  --surface-3: #38383c;
-  --ink: #ffffff;
-  --ink-2: #c3c2b7;
-  --ink-3: #8f8e88;
-  --on-ink: #0b0b0b;
-  --line: rgba(255, 255, 255, 0.1);
+  --bg: #0c0c0b;
+  --surface: #1a1918;
+  --surface-2: #262523;
+  --surface-3: #34322f;
+  --ink: #f6f4ef;
+  --ink-2: #c9c6bd;
+  --ink-3: #8f8b82;
+  --on-ink: #0c0c0b;
+  --line: rgba(255, 255, 255, 0.09);
   --scrim: rgba(0, 0, 0, 0.6);
+  --accent: #f2a93a;
+  --on-accent: #2b1a02;
+  --accent-soft: #3a2a12;
+  --accent-ink: #fac775;
+  --hero: #22211e;
+  --on-hero: #f6f4ef;
+  --hero-2: #a9a69d;
+  --hero-track: rgba(255, 255, 255, 0.1);
   --protein: #3987e5;
   --protein-soft: #1c2f4a;
   --carbs: #d95926;
@@ -263,10 +291,10 @@ video {
 /* ---- type ------------------------------------------------------------------------------ */
 
 .h1 {
-  font-size: 34px;
-  line-height: 1.1;
-  font-weight: 700;
-  letter-spacing: -0.022em;
+  font-size: 36px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.035em;
 }
 
 .h2 {
@@ -357,8 +385,8 @@ video {
 }
 
 .btn-primary {
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .btn-secondary {
@@ -577,8 +605,8 @@ button.row:active {
 }
 
 .btn-primary .spinner {
-  border-color: rgba(128, 128, 128, 0.45);
-  border-top-color: var(--on-ink);
+  border-color: rgba(43, 26, 2, 0.25);
+  border-top-color: var(--on-accent);
 }
 
 @keyframes spin {
@@ -764,8 +792,8 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .chip[aria-pressed='true'] {
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .toggle {
@@ -885,7 +913,7 @@ input[type='search']::-webkit-search-cancel-button {
   bottom: max(12px, calc(var(--safe-bottom) - 6px));
   height: 64px;
   display: grid;
-  grid-template-columns: 1fr 1fr 76px 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   align-items: center;
   border-radius: 32px;
   background: var(--surface);
@@ -908,6 +936,10 @@ input[type='search']::-webkit-search-cancel-button {
 
 .tab[aria-current='page'] {
   color: var(--ink);
+}
+
+.tab[aria-current='page'] svg {
+  color: var(--accent);
 }
 
 .tab svg {
@@ -945,8 +977,8 @@ input[type='search']::-webkit-search-cancel-button {
   gap: 12px;
   padding: 0 8px 0 18px;
   border-radius: 26px;
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--hero);
+  color: var(--on-hero);
   box-shadow: var(--shadow-float);
   z-index: 5;
   text-align: left;
@@ -967,8 +999,8 @@ input[type='search']::-webkit-search-cancel-button {
   height: 36px;
   padding: 0 14px;
   border-radius: 18px;
-  background: var(--on-ink);
-  color: var(--ink);
+  background: var(--accent);
+  color: var(--on-accent);
   font-size: 14px;
   font-weight: 650;
 }
@@ -1257,7 +1289,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .ring .ring-fill {
-  stroke: var(--ink);
+  stroke: var(--accent);
   transition: stroke-dashoffset 0.8s var(--ease), stroke 0.3s ease;
 }
 
@@ -1278,7 +1310,7 @@ input[type='search']::-webkit-search-cancel-button {
 .hero-num {
   font-size: 56px;
   line-height: 1;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.035em;
 }
 
@@ -1476,7 +1508,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .onboard-progress i.on {
-  background: var(--ink);
+  background: var(--accent);
 }
 
 .onboard-body {
@@ -1514,7 +1546,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .choice[aria-pressed='true'] {
-  box-shadow: inset 0 0 0 2px var(--ink);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 .choice .tick {
@@ -1529,8 +1561,8 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .choice[aria-pressed='true'] .tick {
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--accent);
+  color: var(--on-accent);
   box-shadow: none;
 }
 
@@ -1616,6 +1648,230 @@ input[type='search']::-webkit-search-cancel-button {
   color: var(--ink-3);
 }
 
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 11px 0 9px;
+  border-radius: 15px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.avatar-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--hero);
+  color: var(--on-hero);
+  font-size: 16px;
+  font-weight: 700;
+  flex: none;
+  transition: transform 0.12s ease;
+}
+
+.avatar-btn:active {
+  transform: scale(0.92);
+}
+
+/* The scoreboard: dark in both themes, so the numbers carry the screen. */
+.hero-card {
+  background: var(--hero);
+  color: var(--on-hero);
+  border-radius: 26px;
+  padding: 20px 20px 18px;
+}
+
+.hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hero-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hero-2);
+}
+
+.hero-card .hero-num {
+  font-size: 52px;
+  margin-top: 2px;
+}
+
+.hero-card .hero-num small {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--hero-2);
+  margin-left: 5px;
+}
+
+.hero-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--hero-2);
+}
+
+.hero-card .ring .ring-track {
+  stroke: var(--hero-track);
+}
+
+.hero-pct {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.hero-macros {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.hero-macro {
+  padding: 10px 11px 11px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
+  min-width: 0;
+}
+
+.hero-macro-top {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hero-2);
+}
+
+.hero-macro-top b {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--on-hero);
+}
+
+.hero-macro-top small {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--hero-2);
+}
+
+.hero-macro-bar {
+  height: 5px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.hero-macro-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--c);
+  transition: width 0.7s var(--ease);
+}
+
+.log-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.log-type {
+  background: var(--surface);
+  padding: 0 20px;
+}
+
+.timeline .tl-row,
+.list > .tl-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 16px 10px 14px;
+  text-align: left;
+  position: relative;
+}
+
+.tl-row + .tl-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 78px;
+  right: 0;
+  height: 1px;
+  background: var(--line);
+}
+
+button.tl-row:active {
+  background: var(--surface-2);
+}
+
+.tl-time {
+  width: 54px;
+  flex: none;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  display: flex;
+  justify-content: center;
+}
+
+.tl-row .kcal {
+  font-size: 17px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.tl-train {
+  background: var(--accent-soft);
+}
+
+.tl-train .tl-time {
+  color: var(--accent-ink);
+}
+
+.tl-train.done {
+  background: transparent;
+}
+
+.tl-train.done .tl-time {
+  color: var(--good);
+}
+
+.tl-go {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 17px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .mini-card {
   display: flex;
   align-items: center;
@@ -1637,27 +1893,63 @@ button.mini-card:active {
   position: absolute;
   inset: 0;
   z-index: 40;
-  background: #000;
   color: #fff;
-  display: flex;
-  flex-direction: column;
-  animation: sheet-in 0.36s var(--ease);
   color-scheme: dark;
 }
 
 .cam.closing {
-  animation: sheet-out 0.26s var(--ease) forwards;
   pointer-events: none;
 }
 
-.cam-view {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  margin: calc(var(--safe-top) + 8px) 8px 0;
-  border-radius: 28px;
+/* The app stays in view above the card, a little dimmed. Tapping it closes the camera. */
+.cam-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.42);
+  animation: fade-in 0.35s ease;
+}
+
+.cam.closing .cam-backdrop {
+  animation: fade-out 0.28s ease forwards;
+}
+
+/* The camera itself: a rounded card docked to the bottom, like a keyboard-sized viewfinder. */
+.cam-card {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(var(--safe-bottom) + 8px);
+  aspect-ratio: 3 / 4;
+  max-height: calc(100% - var(--safe-top) - 88px);
+  border-radius: 34px;
   overflow: hidden;
-  background: #111;
+  background: #1c1c1e;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35);
+  will-change: clip-path, transform;
+}
+
+.keyboard-open .cam-card {
+  bottom: 8px;
+  aspect-ratio: auto;
+  top: calc(var(--safe-top) + 8px);
+}
+
+.cam-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* Warms from near-black to grey while the camera starts, then the picture fades in over it. */
+  animation: cam-warm 0.7s 0.15s ease both;
+}
+
+@keyframes cam-warm {
+  from {
+    background: #1c1c1e;
+  }
+  to {
+    background: #3b3734;
+  }
 }
 
 .cam-view video,
@@ -1671,6 +1963,56 @@ button.mini-card:active {
 
 .cam-view video.mirror {
   transform: scaleX(-1);
+}
+
+.cam-view video {
+  transition:
+    opacity 0.45s ease,
+    filter 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cam-view video.waking {
+  opacity: 0;
+  filter: blur(14px);
+}
+
+.cam-view video.focused {
+  opacity: 1;
+  filter: none;
+}
+
+/* On close the picture goes soft as the card shrinks away. */
+.cam.closing .cam-view video,
+.cam.closing .cam-view .shot {
+  filter: blur(14px);
+  opacity: 0.4;
+  transition:
+    filter 0.25s ease,
+    opacity 0.25s ease;
+}
+
+/* The photo you just took settles in with a small blur-to-sharp, like the shutter landing. */
+.cam-view .shot {
+  animation: shot-settle 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes shot-settle {
+  from {
+    filter: blur(10px) brightness(1.3);
+    scale: 1.04;
+  }
+}
+
+/* The buttons come in once the card has opened. */
+.cam .cam-controls,
+.cam .cam-hint {
+  animation: cam-ui-in 0.35s 0.25s ease both;
+}
+
+@keyframes cam-ui-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .cam-top {
@@ -1709,7 +2051,7 @@ button.mini-card:active {
 
 .cam-frame {
   position: absolute;
-  inset: 12% 9%;
+  inset: 12% 9% 22%;
   pointer-events: none;
   z-index: 1;
 }
@@ -1755,9 +2097,9 @@ button.mini-card:active {
 
 .cam-tips {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
+  left: 10px;
+  right: 10px;
+  bottom: 92px;
   z-index: 3;
   padding: 16px 16px 14px;
   border-radius: 22px;
@@ -1810,7 +2152,7 @@ button.mini-card:active {
 .cam-hint {
   position: absolute;
   left: 50%;
-  bottom: 14px;
+  top: 14px;
   transform: translateX(-50%);
   z-index: 3;
   max-width: calc(100% - 28px);
@@ -1834,28 +2176,73 @@ button.mini-card:active {
 }
 
 .cam-controls {
-  flex: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 22px 34px calc(var(--safe-bottom) + 22px);
+  padding: 40px 16px 16px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
+}
+
+/* "More": a small dark menu that pops up above the button. */
+.cam-menu {
+  position: absolute;
+  right: 12px;
+  bottom: 76px;
+  min-width: 210px;
+  padding: 6px;
+  border-radius: 22px;
+  background: rgba(36, 36, 38, 0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transform-origin: bottom right;
+  animation: pop 0.22s var(--ease);
+}
+
+.cam-menu button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 16px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.cam-menu button:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.cam-menu button[disabled] {
+  opacity: 0.4;
 }
 
 .cam-controls > :first-child {
   justify-self: start;
 }
 
-.cam-controls > :last-child {
+.cam-controls > :nth-child(3) {
   justify-self: end;
 }
 
 .cam-side {
   display: grid;
   place-items: center;
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(20, 20, 20, 0.5);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   color: #fff;
   transition: transform 0.12s ease;
 }
@@ -1865,11 +2252,11 @@ button.mini-card:active {
 }
 
 .shutter {
-  width: 78px;
-  height: 78px;
+  width: 62px;
+  height: 62px;
   border-radius: 50%;
-  border: 4px solid #fff;
-  padding: 4px;
+  border: 0;
+  padding: 0;
   transition: transform 0.12s ease;
 }
 
@@ -1927,8 +2314,13 @@ button.mini-card:active {
 }
 
 .cam-compose {
-  flex: none;
-  padding: 14px 14px calc(var(--safe-bottom) + 14px);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  padding: 48px 10px 12px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2000,8 +2392,8 @@ button.mini-card:active {
 }
 
 .compose-box.themed .send-btn {
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .cam-scan {
@@ -2012,7 +2404,7 @@ button.mini-card:active {
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  padding: 26px;
+  padding: 26px 26px 120px;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0) 55%);
 }
 
@@ -2090,8 +2482,8 @@ button.mini-card:active {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--accent);
+  color: var(--on-accent);
   flex: none;
 }
 
@@ -2195,7 +2587,7 @@ button.mini-card:active {
 }
 
 .bar-col[aria-pressed='true'] .bar {
-  background: var(--ink);
+  background: var(--accent);
 }
 
 .bar-col.zero .bar {
@@ -2331,8 +2723,8 @@ button.mini-card:active {
 }
 
 .week button[aria-pressed='true'] {
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--accent);
+  color: var(--on-accent);
   box-shadow: none;
 }
 
@@ -2493,7 +2885,7 @@ button.ex-row:active {
 }
 
 .progress-line i.done {
-  background: var(--ink);
+  background: var(--accent);
 }
 
 .progress-line i.now {
@@ -2605,12 +2997,12 @@ button.ex-row:active {
 }
 
 .set-row.current {
-  box-shadow: inset 0 0 0 2px var(--ink);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 .set-row.current .n {
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .set-row.todo {
@@ -2653,7 +3045,8 @@ button.ex-row:active {
   padding: 0 6px 0 16px;
   margin-bottom: 12px;
   border-radius: 20px;
-  background: var(--surface-2);
+  background: var(--hero);
+  color: var(--on-hero);
   position: relative;
   overflow: hidden;
   animation: rise 0.3s var(--ease);
@@ -2664,7 +3057,7 @@ button.ex-row:active {
   left: 0;
   top: 0;
   bottom: 0;
-  background: var(--surface-3);
+  background: rgba(239, 159, 39, 0.28);
   transition: width 0.25s linear;
 }
 
@@ -2682,7 +3075,7 @@ button.ex-row:active {
 .rest-bar .lbl {
   font-size: 13px;
   font-weight: 600;
-  color: var(--ink-3);
+  color: var(--hero-2);
 }
 
 .rest-bar button {
@@ -2690,7 +3083,8 @@ button.ex-row:active {
   min-width: 46px;
   padding: 0 10px;
   border-radius: 14px;
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--on-hero);
   font-size: 14px;
   font-weight: 650;
 }
@@ -2777,7 +3171,7 @@ button.ex-row:active {
 }
 
 .dots i.on {
-  background: var(--ink);
+  background: var(--accent);
   width: 20px;
   border-radius: 4px;
 }
@@ -2970,8 +3364,8 @@ div.ex-row > .ex-main:only-child {
 }
 
 .pick-check.on {
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--accent);
+  color: var(--on-accent);
   box-shadow: none;
 }
 
@@ -3042,14 +3436,14 @@ div.ex-row > .ex-main:only-child {
   height: 12px;
   margin: -6px 0 0 -6px;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--accent);
   box-shadow: 0 0 0 2px var(--surface);
   pointer-events: none;
 }
 
 .spark .line {
   fill: none;
-  stroke: var(--ink);
+  stroke: var(--accent);
   stroke-width: 2;
   stroke-linejoin: round;
   stroke-linecap: round;

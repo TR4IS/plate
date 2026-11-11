@@ -1,6 +1,6 @@
 // Logging food: the in-app camera, "describe it" for text-only, and the estimate you confirm.
 import { blobToBase64, photoFromFile, photoFromVideo } from '../image.js';
-import { html, useEffect, useRef, useState } from '../lib.js';
+import { html, useEffect, useLayoutEffect, useRef, useState } from '../lib.js';
 import {
   analyzeMeal,
   closeOverlay,
@@ -57,7 +57,54 @@ const CAMERA_PROBLEM = {
   unavailable: { title: "Couldn't start the camera", text: 'Another app may be using it. You can still take or choose a photo.' },
 };
 
-function CaptureScreen({ day }) {
+/**
+ * The camera card grows out of the button that opened it and rises into place, then shrinks back
+ * into it on close. The card's real shape is revealed with a clip, so nothing inside is stretched.
+ */
+function useMorph(cardRef, origin, closing) {
+  const still = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const shapes = () => {
+    const card = cardRef.current.getBoundingClientRect();
+    const radius = parseFloat(getComputedStyle(cardRef.current).borderTopLeftRadius) || 32;
+    const from = origin
+      ? {
+          top: Math.max(0, origin.top - card.top),
+          right: Math.max(0, card.right - (origin.left + origin.width)),
+          bottom: Math.max(0, card.bottom - (origin.top + origin.height)),
+          left: Math.max(0, origin.left - card.left),
+          radius: origin.radius,
+        }
+      : { top: card.height - 64, right: card.width / 2 - 32, bottom: 0, left: card.width / 2 - 32, radius: 32 };
+    const clip = (b) => `inset(${b.top}px ${b.right}px ${b.bottom}px ${b.left}px round ${b.radius}px)`;
+    return { small: clip(from), full: clip({ top: 0, right: 0, bottom: 0, left: 0, radius }) };
+  };
+
+  useLayoutEffect(() => {
+    if (!cardRef.current || still()) return;
+    const { small, full } = shapes();
+    cardRef.current.animate(
+      [
+        { clipPath: small, transform: 'translateY(18px)' },
+        { clipPath: full, transform: 'translateY(0)' },
+      ],
+      { duration: 520, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' },
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!closing || !cardRef.current || still()) return;
+    const { small, full } = shapes();
+    cardRef.current.animate(
+      [
+        { clipPath: full, opacity: 1 },
+        { clipPath: small, opacity: 0.6 },
+      ],
+      { duration: 280, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
+    );
+  }, [closing]);
+}
+
+function CaptureScreen({ day, origin }) {
   const s = useStore();
   const closing = useClosing();
   const videoRef = useRef(null);
@@ -65,6 +112,7 @@ function CaptureScreen({ day }) {
   const handedOff = useRef(false);
   const libraryInput = useRef(null);
   const systemCameraInput = useRef(null);
+  const cardRef = useRef(null);
 
   const [status, setStatus] = useState('starting'); // starting | live | insecure | denied | unavailable
   const [facing, setFacing] = useState('environment');
@@ -74,6 +122,8 @@ function CaptureScreen({ day }) {
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState(0);
   const [tipsOpen, setTipsOpen] = useState(() => !hintSeen('camera-tips'));
+  const [menuOpen, setMenuOpen] = useState(false);
+  useMorph(cardRef, origin, closing);
 
   const stopStream = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -182,27 +232,29 @@ function CaptureScreen({ day }) {
   };
 
   const problem = CAMERA_PROBLEM[status];
+  const menu = (action) => () => {
+    setMenuOpen(false);
+    action();
+  };
 
+  // A card that rises over the lower part of the screen, with the app still in view above it.
   return html`<div class=${cx('cam', closing && 'closing')} role="dialog" aria-label="Scan a meal">
+    <button class="cam-backdrop" aria-label="Close camera" tabindex="-1" onClick=${() => !busy && closeOverlay()} />
+    <div class="cam-card" ref=${cardRef}>
     <div class="cam-view">
       ${photo
-        ? html`<img class="shot" src=${photo.url} alt="Your photo" />`
-        : html`<video ref=${videoRef} class=${cx(facing === 'user' && 'mirror')} playsinline muted autoplay />`}
+        ? html`<img class="shot" key=${photo.url} src=${photo.url} alt="Your photo" />`
+        : html`<video ref=${videoRef} class=${cx(facing === 'user' && 'mirror', status === 'live' ? 'focused' : 'waking')} playsinline muted autoplay />`}
       ${flash > 0 && html`<div class="cam-flash" key=${flash} />`}
 
-      <div class="cam-top">
-        ${photo && !busy
-          ? html`<button class="glass-btn" onClick=${() => setPhoto(null)}><${Icon} name="retake" size="18" /> Retake</button>`
-          : html`<button class="glass-btn" onClick=${() => closeOverlay()} aria-label="Close"><${Icon} name="x" size="22" /></button>`}
-        ${photo
-          ? !busy && html`<button class="glass-btn" onClick=${() => closeOverlay()} aria-label="Close"><${Icon} name="x" size="22" /></button>`
-          : html`<button class="glass-btn" onClick=${() => setTipsOpen(!tipsOpen)} aria-pressed=${String(tipsOpen)}>
-              <${Icon} name="bulb" size="18" /> Tips
-            </button>`}
-      </div>
+      ${photo &&
+      !busy &&
+      html`<div class="cam-top">
+        <button class="glass-btn" onClick=${() => setPhoto(null)}><${Icon} name="retake" size="18" /> Retake</button>
+        <button class="glass-btn" onClick=${() => closeOverlay()} aria-label="Close"><${Icon} name="x" size="20" /></button>
+      </div>`}
 
       ${!photo && status === 'live' && html`<div class="cam-frame"><i /><i /><i /><i /></div>`}
-      ${!photo && status === 'starting' && html`<div class="cam-message"><${Spinner} /></div>`}
       ${!photo &&
       problem &&
       html`<div class="cam-message">
@@ -215,7 +267,6 @@ function CaptureScreen({ day }) {
 
       ${!photo && !problem && (tipsOpen ? html`<${TipsCard} onDone=${dismissTips} />` : html`<${TipTicker} onOpen=${() => setTipsOpen(true)} />`)}
       ${busy && html`<div class="cam-scan"><p>Estimating your meal…</p></div>`}
-    </div>
 
     ${photo
       ? html`<div class="cam-compose">
@@ -244,19 +295,24 @@ function CaptureScreen({ day }) {
           </div>`}
         </div>`
       : html`<div class="cam-controls">
-          <button class="cam-side" onClick=${() => libraryInput.current.click()} aria-label="Choose from library">
-            <${Icon} name="image" size="24" />
+          <button class="cam-side" onClick=${() => closeOverlay()} aria-label="Close camera">
+            <${Icon} name="left" size="22" />
           </button>
           <button class="shutter" onClick=${shoot} disabled=${status !== 'live'} aria-label="Take photo" />
-          <button
-            class="cam-side"
-            onClick=${() => setFacing(facing === 'environment' ? 'user' : 'environment')}
-            disabled=${status !== 'live'}
-            aria-label="Switch camera"
-          >
-            <${Icon} name="flip" size="24" />
+          <button class="cam-side" onClick=${() => setMenuOpen(!menuOpen)} aria-label="More" aria-expanded=${String(menuOpen)}>
+            <${Icon} name="more" size="22" />
           </button>
+          ${menuOpen &&
+          html`<div class="cam-menu" role="menu">
+            <button role="menuitem" onClick=${menu(() => libraryInput.current.click())}><${Icon} name="image" size="19" /> Choose a photo</button>
+            <button role="menuitem" disabled=${status !== 'live'} onClick=${menu(() => setFacing(facing === 'environment' ? 'user' : 'environment'))}>
+              <${Icon} name="flip" size="19" /> Switch camera
+            </button>
+            <button role="menuitem" onClick=${menu(() => setTipsOpen(true))}><${Icon} name="bulb" size="19" /> Photo tips</button>
+          </div>`}
         </div>`}
+    </div>
+    </div>
 
     <input ref=${libraryInput} type="file" accept="image/*" hidden onChange=${pickFile} />
     <input ref=${systemCameraInput} type="file" accept="image/*" capture="environment" hidden onChange=${pickFile} />

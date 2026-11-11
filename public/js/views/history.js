@@ -6,7 +6,7 @@ import { targetsOf, totalsOf } from '../nutrition.js';
 import { closeOverlay, deleteWorkout, loadMeals, loadMoreWorkouts, loadWorkout, openOverlay, toast, useStore } from '../store.js';
 import { Empty, Icon, Screen, Segmented, Spinner, confirmDialog, cx, registerOverlay } from '../ui.js';
 import { addDays, fmtDay, fmtDuration, fmtInt, kgToUnit, mondayOf, parseDay, plural, weightUnit } from '../util.js';
-import { DaySummary, MealRow } from './today.js';
+import { DaySummary, MealRow, originOf } from './today.js';
 
 const PAGE = 45;
 const LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -215,7 +215,7 @@ function DayScreen({ day }) {
           ? html`<div class="card"><${Empty} icon="utensils" title="Nothing logged" /></div>`
           : html`<div class="list">${meals.map((meal) => html`<${MealRow} key=${meal.id} meal=${meal} />`)}</div>`}
       <div style=${{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        <button class="btn btn-secondary" style=${{ background: 'var(--surface)' }} onClick=${() => openOverlay('capture', { day })}>
+        <button class="btn btn-secondary" style=${{ background: 'var(--surface)' }} onClick=${(event) => openOverlay('capture', { day, origin: originOf(event) })}>
           <${Icon} name="camera" size="20" /> Scan
         </button>
         <button class="btn btn-secondary" style=${{ background: 'var(--surface)' }} onClick=${() => openOverlay('describe', { day })}>

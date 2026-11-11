@@ -13,6 +13,7 @@ const ICONS = {
   bulb: 'lightbulb',
   calendar: 'calendar',
   camera: 'camera',
+  flame: 'flame',
   check: 'check',
   copy: 'copy',
   down: 'chevron-down',
