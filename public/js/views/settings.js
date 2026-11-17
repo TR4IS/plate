@@ -5,7 +5,7 @@ import { html, useEffect, useRef, useState } from '../lib.js';
 import { ACTIVITY, GOALS, suggestTargets, targetsOf } from '../nutrition.js';
 import { closeOverlay, deleteWeight, errorText, logWeight, logout, openOverlay, refresh, saveProfile, set, toast, useStore } from '../store.js';
 import { Empty, Field, Icon, NumberInput, Row, Screen, Segmented, Sheet, Spinner, Stepper, Toggle, confirmDialog, cx, registerOverlay } from '../ui.js';
-import { cmToFeetInches, dayStr, fmtDay, fmtInt, fmtNum, kgToUnit, parseDay, plural, unitToKg, weightUnit } from '../util.js';
+import { DEFAULT_DAY_START, cmToFeetInches, dayStr, fmtDay, fmtInt, fmtNum, kgToUnit, parseDay, plural, todayStr, unitToKg, weightUnit } from '../util.js';
 import { HeightInput } from './onboarding.js';
 
 /** Save profile changes; when targets are automatic, recompute them from the new numbers. */
@@ -20,6 +20,11 @@ const heightText = (profile) => {
   const { feet, inches } = cmToFeetInches(profile.heightCm);
   return `${feet}′ ${inches}″`;
 };
+
+// When "today" rolls over. Later than midnight so a late snack stays with the evening it belongs to.
+const DAY_STARTS = [0, 4, 6];
+const clock12 = new Intl.DateTimeFormat(undefined, { hour: 'numeric' }).resolvedOptions().hour12;
+const hourLabel = (hour) => (clock12 ? `${hour % 12 || 12} AM` : `${String(hour).padStart(2, '0')}:00`);
 
 export function SettingsTab() {
   const s = useStore();
@@ -91,6 +96,7 @@ export function SettingsTab() {
             ]}
           />
         </div>
+        <${Row} icon="bed" title="New day starts" value=${hourLabel(profile.dayStart ?? DEFAULT_DAY_START)} onClick=${() => openOverlay('dayStart')} />
         <${Row} icon="squarePlus" title="Add to Home Screen" onClick=${() => openOverlay('install')} />
       </div>
 
@@ -258,7 +264,7 @@ function WeightScreen() {
   const entries = s.weights;
   const latest = entries.length ? entries[entries.length - 1] : null;
   const [value, setValue] = useState(() => Math.round(kgToUnit(latest?.kg || s.profile?.weightKg || 75, unit) * 10) / 10);
-  const today = dayStr();
+  const today = todayStr();
   const loggedToday = latest?.day === today;
 
   const save = () => {
@@ -363,6 +369,20 @@ function TrainingPrefsSheet() {
         <${Toggle} checked=${profile.sound !== false} label="Timer sounds" onChange=${(sound) => saveProfile({ sound })} />
       </div>
       <p class="small muted" style=${{ padding: '0 4px' }}>iPhones play the chime only when the ring switch is on.</p>
+    </div>
+  <//>`;
+}
+
+function DayStartSheet() {
+  const s = useStore();
+  return html`<${Sheet} title="New day starts">
+    <div class="stack">
+      <p class="muted" style=${{ margin: 0 }}>Anything you eat before this time counts toward the day before, so a late-night snack stays with that evening.</p>
+      <${Segmented}
+        value=${s.profile?.dayStart ?? DEFAULT_DAY_START}
+        onChange=${(dayStart) => saveProfile({ dayStart })}
+        options=${DAY_STARTS.map((hour) => ({ value: hour, label: hourLabel(hour) }))}
+      />
     </div>
   <//>`;
 }
@@ -894,6 +914,7 @@ registerOverlay('body', BodySheet);
 registerOverlay('weight', WeightScreen);
 registerOverlay('trainingPrefs', TrainingPrefsSheet);
 registerOverlay('install', InstallSheet);
+registerOverlay('dayStart', DayStartSheet);
 registerOverlay('account', AccountSheet);
 registerOverlay('backup', BackupSheet);
 registerOverlay('aiSettings', AiSettingsScreen);

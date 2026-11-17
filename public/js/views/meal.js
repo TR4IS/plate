@@ -2,7 +2,7 @@
 import { html, useEffect, useRef, useState } from '../lib.js';
 import { closeOverlay, deleteMeal, mealPhotoUrl, openOverlay, saveMeal, toast, useStore } from '../store.js';
 import { Field, Icon, MacroPills, NumberInput, Sheet, confirmDialog, cx, registerOverlay } from '../ui.js';
-import { dayStr, fmtDay, fmtInt, fmtTime, haptic, parseDay, uid } from '../util.js';
+import { fmtDay, fmtInt, fmtTime, haptic, parseDay, todayStr, uid } from '../util.js';
 
 const SOURCE_LABEL = { photo: 'Scanned from a photo', text: 'Estimated from your description', manual: 'Entered by hand' };
 
@@ -23,7 +23,7 @@ function MealSheet({ meal: opened }) {
   };
 
   const logAgain = () => {
-    const today = dayStr();
+    const today = todayStr();
     saveMeal({ ...meal, id: uid('m'), day: today, ts: Date.now(), photo: false, localPhoto: undefined });
     haptic();
     closeOverlay();
@@ -73,7 +73,7 @@ function MealSheet({ meal: opened }) {
 /** Edit an existing meal, or (with no `meal`) add one by typing the numbers. */
 function MealEditSheet({ meal, day, photoUrl, photoBase64 }) {
   const isNew = !meal;
-  const today = dayStr();
+  const today = todayStr();
   const [form, setForm] = useState({
     name: meal?.name || '',
     calories: meal?.calories ?? null,

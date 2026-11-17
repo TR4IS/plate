@@ -171,7 +171,8 @@
     };
     const plan = planFromTemplate(TEMPLATES.find((t) => t.id === 'ppl6') || TEMPLATES[0]);
 
-    const today = dayStr();
+    // Same rule as the app: until 4 AM it is still yesterday.
+    const today = dayStr(new Date(Date.now() - (new Date().getHours() < 4 ? 86_400_000 : 0)));
     const meals = [];
     const workouts = [];
     const weights = [];

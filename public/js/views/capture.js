@@ -13,7 +13,7 @@ import {
   useStore,
 } from '../store.js';
 import { Icon, MacroPills, Screen, Sheet, Spinner, cx, registerOverlay, useClosing } from '../ui.js';
-import { dayStr, fmtDay, fmtInt, fmtNum, haptic, parseDay, sum, uid } from '../util.js';
+import { fmtDay, fmtInt, fmtNum, haptic, parseDay, sum, todayStr, uid } from '../util.js';
 
 const TIPS = [
   { icon: 'sun', text: 'Use good light and avoid hard shadows', short: 'Good light, no hard shadows' },
@@ -381,8 +381,8 @@ function EstimateScreen({ estimate: first, note, day, image, photoUrl, photoBase
 
   const included = estimate.items.filter((_, i) => !off.has(i));
   const total = (field) => sum(included, (item) => item[field]) * portion;
-  // Read the date now rather than from app state, so a meal logged just after midnight lands on the new day.
-  const today = dayStr();
+  // Read the date now rather than from app state, so a meal logged after the day-start hour lands on the new day.
+  const today = todayStr();
   const targetDay = day || today;
 
   const toggle = (index) => {

@@ -4,7 +4,7 @@
 // they are converted to kilograms when the workout is finished and stored.
 import { buildWarmup, defaultRest, getExercise } from './exercises.js';
 import { saveWorkout, setSession, state } from './store.js';
-import { dayStr, kgToUnit, uid, unitToKg, weightUnit } from './util.js';
+import { kgToUnit, todayStr, uid, unitToKg, weightUnit } from './util.js';
 
 const round2 = (n) => Math.round(n * 100) / 100;
 const estimatedMax = (weight, reps) => weight * (1 + reps / 30);
@@ -67,7 +67,7 @@ export function startSession(routine) {
     id: uid('w'),
     routineId: routine.id || '',
     name: routine.name,
-    day: dayStr(),
+    day: todayStr(),
     startedAt: Date.now(),
     unit,
     phase: warmup ? 'warmup' : 'train',

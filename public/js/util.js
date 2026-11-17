@@ -13,6 +13,22 @@ export function dayStr(date = new Date()) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+// Your eating day doesn't end at midnight: a snack at 1 AM belongs to the evening before it.
+// Until `dayStart` o'clock, "today" is still yesterday's date. Set from the profile.
+export const DEFAULT_DAY_START = 4;
+let dayStart = DEFAULT_DAY_START;
+
+export function setDayStart(hour) {
+  dayStart = Number.isInteger(hour) && hour >= 0 && hour < 12 ? hour : DEFAULT_DAY_START;
+}
+
+/** The day you are living in right now, which only rolls over at the day-start hour. */
+export function todayStr(now = new Date()) {
+  const date = new Date(now);
+  if (date.getHours() < dayStart) date.setDate(date.getDate() - 1);
+  return dayStr(date);
+}
+
 export function parseDay(day) {
   const [y, m, d] = day.split('-').map(Number);
   return new Date(y, m - 1, d);
@@ -42,7 +58,7 @@ const dateYearFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 
 const timeFmt = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
 
 /** "Today", "Yesterday", or "Wed 7 Oct" (with the year once it is not this year). */
-export function fmtDay(day, today = dayStr()) {
+export function fmtDay(day, today = todayStr()) {
   if (day === today) return 'Today';
   if (day === addDays(today, -1)) return 'Yesterday';
   if (day === addDays(today, 1)) return 'Tomorrow';

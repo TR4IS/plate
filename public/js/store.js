@@ -5,7 +5,7 @@
 // That is what lets you log sets in a gym with no signal.
 import { ApiError, api, setUnauthorizedHandler } from './api.js';
 import { useEffect, useReducer, useRef } from './lib.js';
-import { dayStr, debounce, uid } from './util.js';
+import { debounce, setDayStart, todayStr, uid } from './util.js';
 
 const KEYS = {
   cache: 'plate.cache.v1',
@@ -58,7 +58,7 @@ const blank = () => ({
   stats: {}, // exercise id -> { last, bestW, bestE1, bestReps, n }
   ai: { ready: false, provider: '' },
   session: null, // the workout in progress
-  today: dayStr(),
+  today: todayStr(),
   online: navigator.onLine !== false,
   pending: 0, // changes saved on this phone that the server has not confirmed yet
   stalled: false, // the last attempt to send them failed
@@ -120,6 +120,14 @@ export const errorText = (err) => (err instanceof ApiError ? err.message : 'Some
 export const hintSeen = (name) => Boolean(ls.get(KEYS.hints, {})[name]);
 export function markHint(name) {
   ls.set(KEYS.hints, { ...ls.get(KEYS.hints, {}), [name]: true });
+}
+
+// ---- day start ---------------------------------------------------------------------------
+
+/** Follow the profile's day-start hour; the Today tab loads that day's meals if it moves. */
+function applyDayStart() {
+  setDayStart(state.profile?.dayStart);
+  state.today = todayStr();
 }
 
 // ---- theme -------------------------------------------------------------------------------
@@ -307,6 +315,7 @@ export async function boot() {
     applyCache(cache);
     overlayPending();
     applyTheme();
+    applyDayStart();
     set({ phase: phaseFor(state.profile) });
   }
 
@@ -348,7 +357,7 @@ async function freshFromServer(url) {
 }
 
 export async function refresh() {
-  const today = dayStr();
+  const today = todayStr();
   const data = await freshFromServer(`/api/bootstrap?day=${today}`);
   lastRefresh = Date.now();
   state.version = data.version;
@@ -365,6 +374,7 @@ export async function refresh() {
   state.today = today;
   overlayPending();
   applyTheme();
+  applyDayStart();
   state.phase = phaseFor(state.profile);
   changed();
 }
@@ -381,7 +391,7 @@ async function refreshStats() {
 /** Called when the app comes back to the foreground or regains a connection. */
 export function wake() {
   if (state.phase !== 'app' && state.phase !== 'onboarding') return;
-  const today = dayStr();
+  const today = todayStr();
   if (today !== state.today) set({ today });
   flushOutbox().then(() => {
     if (Date.now() - lastRefresh > 60_000 || !state.meals[today]) refresh().catch(() => {});
@@ -422,6 +432,7 @@ export async function logout() {
   resetHistory();
   set({ ...blank(), phase: 'auth' });
   applyTheme();
+  applyDayStart();
 }
 
 setUnauthorizedHandler(() => {
@@ -437,6 +448,7 @@ export function saveProfile(patch) {
   state.profile = { ...(state.profile || {}), ...patch };
   if (state.phase === 'onboarding' && state.profile.onboarded) state.phase = 'app';
   applyTheme();
+  applyDayStart();
   enqueue('PUT', '/api/docs/profile', { value: state.profile }, 'doc:profile');
   changed();
 }
@@ -507,7 +519,7 @@ export function analyzeMeal(payload) {
 
 // ---- body weight -------------------------------------------------------------------------
 
-export function logWeight(kg, day = dayStr()) {
+export function logWeight(kg, day = todayStr()) {
   state.weights = [...state.weights.filter((entry) => entry.day !== day), { day, kg }].sort((a, b) => a.day.localeCompare(b.day));
   enqueue('PUT', `/api/weights/${day}`, { kg }, `weight:${day}`);
   // The newest weigh-in is "your weight" for the calorie targets.
@@ -685,5 +697,5 @@ document.addEventListener('visibilitychange', () => {
   else if (state.user) flushOutbox();
 });
 setInterval(() => {
-  if (document.visibilityState === 'visible' && dayStr() !== state.today) wake();
+  if (document.visibilityState === 'visible' && todayStr() !== state.today) wake();
 }, 60_000);
