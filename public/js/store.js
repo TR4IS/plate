@@ -5,7 +5,7 @@
 // That is what lets you log sets in a gym with no signal.
 import { ApiError, api, setUnauthorizedHandler } from './api.js';
 import { useEffect, useReducer, useRef } from './lib.js';
-import { debounce, setDayStart, todayStr, uid } from './util.js';
+import { dayStr, debounce, setDayStart, todayStr, uid } from './util.js';
 
 const KEYS = {
   cache: 'plate.cache.v1',
@@ -377,6 +377,19 @@ export async function refresh() {
   applyDayStart();
   state.phase = phaseFor(state.profile);
   changed();
+  if (state.phase === 'app') moveEarlyMeals().catch(() => {});
+}
+
+/**
+ * Between midnight and the day-start hour, a phone still running an older version (or one set
+ * to start the day at midnight) can file a meal under the calendar date, which then shows up as
+ * "Tomorrow". Move any such meal back to the day it belongs to.
+ */
+async function moveEarlyMeals() {
+  const calendar = dayStr();
+  if (calendar <= state.today) return;
+  const { meals } = await api('GET', `/api/meals?from=${calendar}&to=${calendar}`);
+  for (const meal of meals) if (todayStr(new Date(meal.ts)) === state.today) saveMeal({ ...meal, day: state.today });
 }
 
 async function refreshStats() {
